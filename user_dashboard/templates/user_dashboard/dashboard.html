@@ -1,0 +1,383 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - EmotionReco{% endblock %}
+
+{% block extra_css %}
+<style>
+    .welcome-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .welcome-card h1, .welcome-card p {
+        color: white !important;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .quick-action-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        height: 100%;
+        background: white;
+    }
+    
+    .quick-action-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+    }
+    
+    .icon-circle {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin: 0 auto 1rem;
+    }
+    
+    .stat-card {
+        background: white !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .stat-card p {
+        color: #6b7280 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Welcome Banner -->
+<div class="welcome-card">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h1 class="display-5 mb-2">👋 Welcome back, {{ request.user.username }}!</h1>
+            <p class="lead mb-0">Track your emotional well-being and get personalized insights</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <div class="display-4">😊</div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Overview -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card text-center">
+            <div class="icon-circle bg-primary bg-opacity-10 text-primary">
+                <i class="bi bi-camera-video-fill"></i>
+            </div>
+            <div class="stat-number">{{ facial_count }}</div>
+            <p class="text-muted mb-0 fw-semibold">Facial Scans</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card text-center">
+            <div class="icon-circle bg-success bg-opacity-10 text-success">
+                <i class="bi bi-mic-fill"></i>
+            </div>
+            <div class="stat-number">{{ voice_count }}</div>
+            <p class="text-muted mb-0 fw-semibold">Voice Analyses</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card text-center">
+            <div class="icon-circle bg-warning bg-opacity-10 text-warning">
+                <i class="bi bi-emoji-smile-fill"></i>
+            </div>
+            <div class="stat-number">{{ dominant_emotion }}</div>
+            <p class="text-muted mb-0 fw-semibold">Top Emotion</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card text-center">
+            <div class="icon-circle bg-info bg-opacity-10 text-info">
+                <i class="bi bi-graph-up-arrow"></i>
+            </div>
+            <div class="stat-number">{{ avg_confidence }}%</div>
+            <p class="text-muted mb-0 fw-semibold">Avg Confidence</p>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="row g-4">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Emotion Distribution Chart -->
+        <div class="card mb-4">
+            <div class="card-header text-white" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-pie-chart"></i> Your Emotion Distribution</h5>
+            </div>
+            <div class="card-body" style="background: white;">
+                {% if emotion_labels_json %}
+                    <canvas id="emotionChart" height="300"></canvas>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-emoji-neutral" style="font-size: 4rem; color: #e5e7eb;"></i>
+                        <p class="text-muted mt-3">No emotion data yet. Start detecting!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Activity Chart -->
+        <div class="card mb-4">
+            <div class="card-header text-white" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-activity"></i> 7-Day Activity</h5>
+            </div>
+            <div class="card-body" style="background: white;">
+                {% if recent_activity %}
+                    <canvas id="activityChart" height="250"></canvas>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-graph-down" style="font-size: 4rem; color: #e5e7eb;"></i>
+                        <p class="text-muted mt-3">No activity in the last 7 days</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="card">
+            <div class="card-header text-white" style="background: linear-gradient(135deg, #10b981, #059669);">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-lightbulb-fill"></i> Personalized Recommendations</h5>
+            </div>
+            <div class="card-body" style="background: white;">
+                {% if recommendations %}
+                    <div class="list-group">
+                        {% for rec in recommendations %}
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h5 class="mb-2">
+                                        <i class="bi bi-bookmark-star text-warning"></i>
+                                        {{ rec.item.title }}
+                                    </h5>
+                                    <span class="badge bg-primary mb-2">{{ rec.item.category }}</span>
+                                    <p class="mb-2 text-dark">{{ rec.item.description|truncatewords:20 }}</p>
+                                </div>
+                                <a href="{{ rec.item.content_url }}" class="btn btn-outline-primary btn-sm" target="_blank">
+                                    <i class="bi bi-box-arrow-up-right"></i> View
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox" style="font-size: 4rem; color: #e5e7eb;"></i>
+                        <p class="text-muted mt-3">No recommendations yet. Start detecting emotions!</p>
+                        <a href="{% url 'facial_emotion:detect' %}" class="btn btn-primary">
+                            <i class="bi bi-camera-video"></i> Start Detection
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white;">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-lightning-charge"></i> Quick Actions</h5>
+            </div>
+            <div class="card-body p-2" style="background: white;">
+                <a href="{% url 'facial_emotion:detect' %}" class="text-decoration-none">
+                    <div class="card quick-action-card border-primary mb-2">
+                        <div class="card-body text-center py-3">
+                            <div class="icon-circle bg-primary bg-opacity-10 text-primary">
+                                <i class="bi bi-camera-video-fill"></i>
+                            </div>
+                            <h6 class="mb-0 text-dark fw-semibold">Facial Detection</h6>
+                        </div>
+                    </div>
+                </a>
+                
+                <a href="{% url 'voice_emotion:analyze' %}" class="text-decoration-none">
+                    <div class="card quick-action-card border-success mb-2">
+                        <div class="card-body text-center py-3">
+                            <div class="icon-circle bg-success bg-opacity-10 text-success">
+                                <i class="bi bi-mic-fill"></i>
+                            </div>
+                            <h6 class="mb-0 text-dark fw-semibold">Voice Analysis</h6>
+                        </div>
+                    </div>
+                </a>
+                
+                <a href="{% url 'user_dashboard:emotions' %}" class="text-decoration-none">
+                    <div class="card quick-action-card border-info">
+                        <div class="card-body text-center py-3">
+                            <div class="icon-circle bg-info bg-opacity-10 text-info">
+                                <i class="bi bi-clock-history"></i>
+                            </div>
+                            <h6 class="mb-0 text-dark fw-semibold">View History</h6>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="card">
+            <div class="card-header text-white" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history"></i> Recent Activity</h5>
+            </div>
+            <div class="card-body p-0" style="background: white;">
+                {% if recent_emotions %}
+                    <div class="list-group list-group-flush">
+                        {% for emotion in recent_emotions|slice:":5" %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    {% if emotion.type == 'facial' %}
+                                        <span class="badge bg-primary">
+                                            <i class="bi bi-camera-video"></i> Facial
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-mic"></i> Voice
+                                        </span>
+                                    {% endif %}
+                                    <span class="emotion-badge emotion-{{ emotion.emotion }} ms-2">
+                                        {{ emotion.emotion|title }}
+                                    </span>
+                                </div>
+                                <small class="text-muted">{{ emotion.timestamp|timesince }} ago</small>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar" style="width: {{ emotion.confidence }}%"></div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="card-footer text-center bg-light">
+                        <a href="{% url 'user_dashboard:emotions' %}" class="text-decoration-none fw-semibold">
+                            View All <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox" style="font-size: 3rem; color: #e5e7eb;"></i>
+                        <p class="text-muted mt-3 mb-0">No recent activity</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Emotion Distribution Pie Chart
+const emotionCtx = document.getElementById('emotionChart');
+if (emotionCtx) {
+    try {
+        const emotionLabels = {{ emotion_labels_json|safe }};
+        const emotionValues = {{ emotion_values_json|safe }};
+        
+        if (emotionLabels && emotionLabels.length > 0) {
+            new Chart(emotionCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: emotionLabels,
+                    datasets: [{
+                        data: emotionValues,
+                        backgroundColor: [
+                            '#ef4444', '#f59e0b', '#10b981', '#3b82f6', 
+                            '#8b5cf6', '#ec4899', '#6366f1'
+                        ],
+                        borderWidth: 3,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    } catch (e) {
+        console.error('Chart error:', e);
+    }
+}
+
+// Activity Line Chart
+const activityCtx = document.getElementById('activityChart');
+if (activityCtx) {
+    try {
+        const activityData = {{ recent_activity|safe }};
+        
+        if (activityData && activityData.length > 0) {
+            new Chart(activityCtx, {
+                type: 'line',
+                data: {
+                    labels: activityData.map(d => d.date),
+                    datasets: [{
+                        label: 'Facial',
+                        data: activityData.map(d => d.facial),
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 3
+                    }, {
+                        label: 'Voice',
+                        data: activityData.map(d => d.voice),
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    } catch (e) {
+        console.error('Chart error:', e);
+    }
+}
+</script>
+{% endblock %}

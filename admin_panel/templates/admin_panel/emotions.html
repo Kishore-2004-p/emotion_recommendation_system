@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Emotion Reports{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Emotion Data Reports</h2>
+            <a href="{% url 'admin_panel:dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+        
+        <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Recent Facial Emotions</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Emotion</th>
+                                <th>Confidence</th>
+                                <th>Captured At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for emotion in facial_emotions %}
+                            <tr>
+                                <td>{{ emotion.user.username }}</td>
+                                <td><span class="badge bg-primary">{{ emotion.detected_emotion }}</span></td>
+                                <td>{{ emotion.confidence_score|floatformat:2 }}%</td>
+                                <td>{{ emotion.captured_at|date:"Y-m-d H:i" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">No data</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card shadow">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">Recent Voice Emotions</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Emotion</th>
+                                <th>Confidence</th>
+                                <th>Analyzed At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for emotion in voice_emotions %}
+                            <tr>
+                                <td>{{ emotion.user.username }}</td>
+                                <td><span class="badge bg-warning text-dark">{{ emotion.detected_emotion }}</span></td>
+                                <td>{{ emotion.confidence_score|floatformat:2 }}%</td>
+                                <td>{{ emotion.analyzed_at|date:"Y-m-d H:i" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">No data</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

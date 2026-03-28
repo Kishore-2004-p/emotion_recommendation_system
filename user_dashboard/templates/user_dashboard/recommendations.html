@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}My Recommendations{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>My Recommendations</h2>
+            <a href="{% url 'user_dashboard:dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+        
+        <div class="row">
+            {% for rec in recommendations %}
+            <div class="col-md-6 mb-4">
+                <div class="card shadow h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ rec.item.title }}</h5>
+                        <p class="card-text">{{ rec.item.description }}</p>
+                        <span class="badge bg-info">{{ rec.item.category }}</span>
+                        <span class="badge bg-secondary">{{ rec.emotion_context }}</span>
+                    </div>
+                    <div class="card-footer">
+                        <a href="{{ rec.item.content_url }}" target="_blank" class="btn btn-primary btn-sm">View</a>
+                        <small class="text-muted float-end">{{ rec.recommended_at|date:"Y-m-d" }}</small>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info">No recommendations yet. Use emotion detection features to get personalized suggestions!</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

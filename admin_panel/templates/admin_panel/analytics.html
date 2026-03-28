@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}Analytics - Admin{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="card mb-4" style="background: white;">
+    <div class="card-header text-white" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+        <h4 class="mb-0 fw-bold">
+            <i class="bi bi-graph-up-arrow"></i> System Analytics
+        </h4>
+    </div>
+    <div class="card-body">
+        <p class="mb-0">System-wide analytics and insights</p>
+    </div>
+</div>
+
+<!-- Key Metrics -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card" style="background: white;">
+            <div class="card-body text-center">
+                <h3 class="text-primary">{{ total_detections }}</h3>
+                <p class="text-muted mb-0">Total Detections</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card" style="background: white;">
+            <div class="card-body text-center">
+                <h3 class="text-success">{{ total_facial }}</h3>
+                <p class="text-muted mb-0">Facial Scans</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card" style="background: white;">
+            <div class="card-body text-center">
+                <h3 class="text-info">{{ total_voice }}</h3>
+                <p class="text-muted mb-0">Voice Analyses</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card" style="background: white;">
+            <div class="card-body text-center">
+                <h3 class="text-warning">{{ avg_confidence }}%</h3>
+                <p class="text-muted mb-0">Avg Confidence</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row g-4 mb-4">
+    <!-- Trend Chart -->
+    <div class="col-lg-8">
+        <div class="card" style="background: white;">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-graph-up"></i> 30-Day Activity Trend</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="trendChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Emotion Pie -->
+    <div class="col-lg-4">
+        <div class="card" style="background: white;">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Emotions</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="emotionChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Emotions Table -->
+<div class="card" style="background: white;">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0"><i class="bi bi-trophy"></i> Top Emotions</h5>
+    </div>
+    <div class="card-body">
+        {% if top_emotions_with_percent %}
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Emotion</th>
+                        <th>Count</th>
+                        <th>Percentage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in top_emotions_with_percent %}
+                    <tr>
+                        <td><span class="badge bg-primary">#{{ forloop.counter }}</span></td>
+                        <td><strong>{{ item.emotion|title }}</strong></td>
+                        <td>{{ item.count }}</td>
+                        <td>{{ item.percentage }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="text-center text-muted py-4">No emotion data available</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+console.log('Analytics page loaded');
+
+// Trend Chart
+try {
+    const trendCtx = document.getElementById('trendChart');
+    if (trendCtx) {
+        const labels = {{ trend_labels|safe }};
+        const data = {{ trend_values|safe }};
+        
+        console.log('Trend data:', labels, data);
+        
+        if (labels && labels.length > 0) {
+            new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Detections',
+                        data: data,
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+            console.log('Trend chart created');
+        } else {
+            trendCtx.parentElement.innerHTML = '<p class="text-center text-muted py-5">No trend data</p>';
+        }
+    }
+} catch (e) {
+    console.error('Trend chart error:', e);
+}
+
+// Emotion Chart
+try {
+    const emotionCtx = document.getElementById('emotionChart');
+    if (emotionCtx) {
+        const labels = {{ emotion_labels|safe }};
+        const data = {{ emotion_values|safe }};
+        
+        console.log('Emotion data:', labels, data);
+        
+        if (labels && labels.length > 0) {
+            new Chart(emotionCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: [
+                            '#ef4444', '#f59e0b', '#10b981', '#3b82f6',
+                            '#8b5cf6', '#ec4899', '#6366f1'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+            console.log('Emotion chart created');
+        } else {
+            emotionCtx.parentElement.innerHTML = '<p class="text-center text-muted py-5">No emotion data</p>';
+        }
+    }
+} catch (e) {
+    console.error('Emotion chart error:', e);
+}
+
+console.log('Charts initialization complete');
+</script>
+{% endblock %}

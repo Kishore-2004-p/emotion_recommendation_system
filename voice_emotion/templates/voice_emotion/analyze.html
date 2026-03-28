@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Voice Emotion Analysis{% endblock %}
+
+{% block extra_css %}
+<style>
+    #recordBtn, #stopRecordBtn {
+        font-size: 1.2rem;
+        padding: 15px 30px;
+    }
+    .recording-indicator {
+        display: none;
+        color: #dc3545;
+        font-weight: bold;
+        animation: blink 1s infinite;
+    }
+    .recording-indicator.active {
+        display: inline-block;
+    }
+    @keyframes blink {
+        0%, 50% { opacity: 1; }
+        51%, 100% { opacity: 0.3; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">Voice Emotion Analysis</h2>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Recording/Upload Section -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-mic"></i> Record or Upload Audio</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="my-4">
+                        <h1 style="font-size: 5rem;">🎤</h1>
+                    </div>
+                    
+                    <!-- Recording Controls -->
+                    <div class="mb-4">
+                        <button id="recordBtn" class="btn btn-danger btn-lg me-2">
+                            🎙️ Start Recording
+                        </button>
+                        <button id="stopRecordBtn" class="btn btn-secondary btn-lg" disabled>
+                            ⏹️ Stop Recording
+                        </button>
+                        <span class="recording-indicator ms-3" id="recordingIndicator">● Recording...</span>
+                    </div>
+                    
+                    <!-- Audio Playback -->
+                    <div class="mb-3">
+                        <audio id="audioPlayback" controls style="display:none; width: 100%;"></audio>
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- Upload Form -->
+                    <form method="post" enctype="multipart/form-data" id="uploadForm">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Or Upload Audio File (.wav)</label>
+                            <input type="file" name="audio_file" id="audioFileInput" class="form-control" accept="audio/wav,audio/wave" required>
+                        </div>
+                        <button type="submit" class="btn btn-success btn-lg" id="analyzeBtn">
+                            ✓ Analyze Emotion
+                        </button>
+                    </form>
+                    
+                    <!-- Upload Recorded Audio Button (Hidden until recorded) -->
+                    <button id="uploadRecordedBtn" class="btn btn-primary btn-lg mt-3" style="display:none;">
+                        📤 Upload Recorded Audio
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Results Panel -->
+        <div class="col-lg-4">
+            <div class="card shadow mb-3">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Analysis Result</h5>
+                </div>
+                <div class="card-body text-center">
+                    <p class="text-muted">Upload audio to see results</p>
+                </div>
+            </div>
+            
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0">Instructions</h6>
+                </div>
+                <div class="card-body">
+                    <ol class="small mb-0">
+                        <li>Record audio (3-5 seconds)</li>
+                        <li>Or upload .wav file</li>
+                        <li>Click "Analyze Emotion"</li>
+                        <li>View results in history</li>
+                    </ol>
+                    <p class="small text-muted mt-2">
+                        <strong>Note:</strong> Recording feature requires browser support and .wav conversion
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let mediaRecorder;
+let audioChunks = [];
+let recordedBlob = null;
+
+const recordBtn = document.getElementById('recordBtn');
+const stopRecordBtn = document.getElementById('stopRecordBtn');
+const audioPlayback = document.getElementById('audioPlayback');
+const uploadRecordedBtn = document.getElementById('uploadRecordedBtn');
+const recordingIndicator = document.getElementById('recordingIndicator');
+const uploadForm = document.getElementById('uploadForm');
+const audioFileInput = document.getElementById('audioFileInput');
+
+// Start Recording
+recordBtn.addEventListener('click', async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        // Use audio/wav if supported, otherwise audio/webm
+        let options = { mimeType: 'audio/wav' };
+        if (!MediaRecorder.isTypeSupported('audio/wav')) {
+            options = { mimeType: 'audio/webm' };
+        }
+        
+        mediaRecorder = new MediaRecorder(stream, options);
+        audioChunks = [];
+        
+        mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                audioChunks.push(event.data);
+            }
+        };
+        
+        mediaRecorder.onstop = () => {
+            // Create blob from chunks
+            const mimeType = mediaRecorder.mimeType || 'audio/wav';
+            recordedBlob = new Blob(audioChunks, { type: mimeType });
+            
+            // Create audio URL for playback
+            const audioUrl = URL.createObjectURL(recordedBlob);
+            audioPlayback.src = audioUrl;
+            audioPlayback.style.display = 'block';
+            
+            // Show upload button
+            uploadRecordedBtn.style.display = 'block';
+            
+            // Stop all tracks
+            stream.getTracks().forEach(track => track.stop());
+        };
+        
+        mediaRecorder.start();
+        recordBtn.disabled = true;
+        stopRecordBtn.disabled = false;
+        recordingIndicator.classList.add('active');
+        
+    } catch (err) {
+        alert('Microphone access denied: ' + err.message);
+        console.error('Recording error:', err);
+    }
+});
+
+// Stop Recording
+stopRecordBtn.addEventListener('click', () => {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+        recordBtn.disabled = false;
+        stopRecordBtn.disabled = true;
+        recordingIndicator.classList.remove('active');
+    }
+});
+
+// Upload Recorded Audio
+uploadRecordedBtn.addEventListener('click', async () => {
+    if (!recordedBlob) {
+        alert('No recording available');
+        return;
+    }
+    
+    // Create FormData
+    const formData = new FormData();
+    formData.append('audio_file', recordedBlob, 'recorded_audio.wav');
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    
+    // Show loading
+    uploadRecordedBtn.disabled = true;
+    uploadRecordedBtn.textContent = '⏳ Analyzing...';
+    
+    try {
+        const response = await fetch(window.location.href, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            // FIXED: Changed from 'voice_emotion:voice_history' to 'voice_emotion:history'
+            window.location.href = "{% url 'voice_emotion:history' %}";
+        } else {
+            alert('Analysis failed. Please try again.');
+            uploadRecordedBtn.disabled = false;
+            uploadRecordedBtn.textContent = '📤 Upload Recorded Audio';
+        }
+    } catch (err) {
+        console.error('Upload error:', err);
+        alert('Error: ' + err.message);
+        uploadRecordedBtn.disabled = false;
+        uploadRecordedBtn.textContent = '📤 Upload Recorded Audio';
+    }
+});
+
+// File upload form submission
+uploadForm.addEventListener('submit', (e) => {
+    const fileInput = audioFileInput.files[0];
+    if (!fileInput) {
+        e.preventDefault();
+        alert('Please select a .wav file to upload');
+        return;
+    }
+    
+    // Show loading on button
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = '⏳ Analyzing...';
+});
+</script>
+{% endblock %}
