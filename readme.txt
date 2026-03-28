@@ -776,5 +776,30 @@ _Author: technoriders
 _License: MIT_
 
 ---
+# Emotion Recommendation System
+
+This project is a Django-based Emotion Recommendation System that detects emotions using facial and voice inputs and provides recommendations.
+
+## Features
+- Facial Emotion Detection
+- Voice Emotion Recognition
+- User Dashboard
+- Admin Panel
+- Recommendation System
+
+## Technologies Used
+- Python
+- Django
+- TensorFlow
+- HTML, CSS
+- SQLite
+
+## How to Run
+
+1. Install requirements:
+pip install -r requirements.txt
+
+2. Run server:
+python manage.py runserver
 
 END OF README
