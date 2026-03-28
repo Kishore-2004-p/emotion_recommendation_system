@@ -801,5 +801,49 @@ pip install -r requirements.txt
 
 2. Run server:
 python manage.py runserver
+# Emotion Recommendation System using AI
+
+## 📌 Project Overview
+This project is an AI-based Emotion Recommendation System developed using Django. 
+It detects emotions using facial and voice inputs and provides suitable recommendations.
+
+## 🎯 Objectives
+- Detect human emotions using facial expressions
+- Recognize emotions from voice input
+- Provide personalized recommendations
+- Maintain user and admin dashboards
+
+## 🧰 Technologies Used
+- Python
+- Django Framework
+- TensorFlow / Machine Learning
+- HTML, CSS
+- SQLite Database
+
+## 📂 Modules
+- User Dashboard
+- Admin Panel
+- Facial Emotion Detection
+- Voice Emotion Detection
+- Recommendation System
+- Model Training Module
+
+## ▶️ How to Run the Project
+
+1. Install dependencies:
+pip install -r requirements.txt
+
+2. Run migrations:
+python manage.py migrate
+
+3. Start server:
+python manage.py runserver
+
+4. Open browser:
+http://127.0.0.1:8000/
+
+## 👨‍💻 Developed By
+Kishore Naidu  
+Final Year Project
 
 END OF README
